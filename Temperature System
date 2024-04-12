@@ -1,0 +1,176 @@
+//-----------------------------
+// Title: Temperature System
+//-----------------------------
+// Purpose: The program controls a temperature control system based on measured and reference temperatures.
+// Dependencies: NONE
+// Compiler: MPLAB X IDE 6.20, Simulator Version 2.46
+// Author: Juan Jimenez
+// OUTPUTS: 
+//   - PORTD.1: Connected to the heating system
+//   - PORTD.2: Connected to the cooling system
+// INPUTS: 
+//   - measuredTemp: Temperature sensor input
+//   - refTemp: Reference temperature input
+// Versions:
+//  	V1.0: [3/5] - Initial version
+//  	V1.1: [3/6] - Updated to include decimal conversion and store values in specified registers
+
+//-----------------------------
+// INSTANTIATION
+//-----------------------------
+#include ".\AssemblyTestTwo.inc"
+#include <xc.inc>
+//-----------------------------
+// INPUTS
+//-----------------------------
+measuredTempInput   EQU	    0
+refTempInput	    EQU	    15
+//-----------------------------
+
+//-----------------------------
+// REGISTERS	    
+//-----------------------------
+contREG		    EQU	    0x22	    
+measuredTempREG	    EQU	    0x21
+refTempREG	    EQU	    0x20	    
+//-----------------------------
+	    
+//-----------------------------
+// PROGRAM OUTPUTS	    
+//-----------------------------
+#define	measuredTempDecimalHIGH	0x72
+#define	measuredTempDecimalMID	0x71
+#define measuredTempDecimalLOW	0x72	    
+#define	refTempDecimalHIGH	0x62
+#define refTempDecimalMID	0x61	    
+#define	refTempDecimalLOW	0x60    
+#define HEATER			PORTD, 1
+#define COOLER			PORTD, 2	    
+//-----------------------------	    
+
+//-----------------------------
+// MAIN
+//-----------------------------
+PSECT absdata,abs,ovrld
+     	    
+    ORG	    0x20
+    MOVLW   0x00
+    MOVWF   TRISD, A
+    MOVLW   measuredTempInput
+    MOVWF   measuredTempREG
+    MOVLW   refTempREG
+    MOVWF   refTempREG
+
+//Check if refTemp is greater than 10 and less than 50
+    
+_refCheck:
+    MOVLW   0x0A
+    CPFSGT  refTempREG
+    SLEEP
+    MOVLW   0x32
+    CPFSLT  refTempREG
+    SLEEP
+    GOTO    _measuredCheck
+
+//Check if measuredTemp is greater than -20 and less than 60
+_measuredCheck:
+    NEGF    measuredTempREG
+    MOVLW   0xDF
+    CPFSGT  measuredTempREG
+    SLEEP
+    NEGF    measuredTempREG
+    MOVLW   0x3C
+    CPFSLT  measuredTempREG
+    SLEEP
+    GOTO    _equal
+_equal:
+    MOVF    refTempREG
+    CPFSEQ  measuredTempREG
+    GOTO    _comparison
+    GOTO    _no_function
+_comparison:
+    CPFSGT  measuredTempREG
+    CPFSLT  measuredTempREG
+    GOTO    _COOL
+    GOTO    _HEAT
+_COOL:
+    MOVLW   0x02
+    MOVWF   contREG
+    MOVLW   0x02
+    MOVWF   PORTD, A
+    GOTO    _measuredDec
+_HEAT:
+    MOVLW   0x01
+    MOVWF   contREG
+    MOVLW   0x01
+    MOVWF   PORTD, A
+    GOTO    _measuredDec
+_no_function:
+    MOVLW   0x00
+    MOVWF   contREG
+    MOVLW   0x00
+    MOVWF   PORTD, A
+    GOTO    _measuredDec
+_measuredDec:
+    numeratormeas   EQU	    0x30
+    quotientmeas    EQU	    0x40
+    rmnd_lowmeas    EQU	    0x70
+    rmnd_midmeas    EQU	    0x71
+    rmnd_highmeas   EQU	    0x72
+    denmeas	    EQU	    10
+    MOVLW   measuredTempInput
+    MOVWF   numeratormeas
+    MOVLW   denmeas
+    CLRF    quotientmeas
+_d1meas:
+    INCF    quotientmeas
+    SUBWF   numeratormeas
+    BC	    _d1meas
+    ADDWF   numeratormeas
+    DECF    quotientmeas
+    MOVFF   numeratormeas, rmnd_lowmeas
+    MOVFF   quotientmeas, rmnd_midmeas
+    CLRF    quotientmeas
+_d2meas:
+    INCF    quotientmeas
+    SUBWF   numeratormeas
+    BC	    _d2meas
+    ADDWF   numeratormeas
+    DECF    quotientmeas
+    MOVFF   numeratormeas, rmnd_midmeas
+    MOVFF   quotientmeas, rmnd_highmeas
+_next:
+    GOTO    refDec
+_refDec:
+    rmnd_lowref	    EQU	    0x60
+    rmnd_midref	    EQU	    0x61
+    rmnd_highref    EQU	    0x62
+    numeratorref    EQU	    0x31
+    quotientref	    EQU	    0x41
+    denref	    EQU	    10
+    MOVLW   refTempInput
+    MOVWF   numeratorref
+    MOVLW   denref
+    CLRF    quotientref
+_d1ref:
+    INCF    quotientref
+    SUBWF   numeratorref
+    BC	    _d1ref
+    ADDWF   numeratorref
+    DECF    quotientref
+    MOVFF   numeratorref, rmnd_lowref
+    MOVFF   quotientref, numeratorref
+    CLRF    quotientref
+_d2ref:
+    INCF    quotientref
+    SUBWF   numeratorref
+    BC	    _d2ref
+    ADDWF   numeratorref
+    DECF    quotientref
+    MOVFF   numeratorref, rmnd_midref
+    MOVFF   quotientref, rmnd_highref
+_here:
+    GOTO    _end
+_end:
+    END
+    
