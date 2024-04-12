@@ -1,0 +1,233 @@
+/* -------------------------
+* Title: Keypad_Calculator
+* -------------------------
+* Purpose:
+* The design of this code is to create a functional calculator, using a 4x4
+* keypad. The inputs are only 1-9 and single digit, and the A is addition, B is 
+* subtraction, C is multiplication, and D is division. Negative numbers are 
+* shown in two's complement and all outputs are written in binary. This is only
+* output if the # key is pressed on the Keypad.
+* Dependencies: Cconfig_file.h, stdlib.h, xc.h
+* Compiler: MPLAB X IDE v6.20: XC8 (v2.46)
+* Author: Juan Jimenez
+* Outputs: PORTD PORTB0, PORTB1, PORTB2, PORTB5
+* Inputs: PORTB3, PORTB4, PORTB6, PORTB7
+* Versions:
+* V1.0: 04/06/2024 - First version
+* V2.0: 04/09/2024 - last version
+*/
+
+#include <xc.h>
+#include "C:\Users\juanc\MPLABXProjects\Keypad_Calc.X\Cconfig_file.h"
+#include <stdlib.h>
+//INSTANTIATION OF MAIN
+#define _XTAL_FREQ 4000000
+#define FCY _XTAL_FREQ/4
+
+void delay(unsigned int, unsigned int);
+int input(int);
+int operator(int);
+int Addition_Op(int, int);
+int Subtraction_Op(int, int);
+int Multiplication_Op(int, int);
+int Division_Op(int, int);
+
+
+int what_button;
+int X_Input_REG;
+int Y_Input_REG;
+int Display_Result_REG;
+
+char Operation_REG;
+
+void main(void) {
+    
+    //inputs PORTB
+    
+    PORTB = 0;
+    LATB = 0;
+    ANSELB = 0;
+    TRISB = 216;
+    
+    //outputs PORTD
+    
+    PORTD = 0;
+    LATD = 0;
+    ANSELD = 0;
+    TRISD = 0;
+    
+    what_button = 0;
+    X_Input_REG = 0;
+    Y_Input_REG = 0;
+    Operation_REG = 0;
+    Display_Result_REG = 0;
+    
+    while(1){
+        //function to check X input for keypad input
+        if(PORTD == 0){
+            X_Input_REG = input(X_Input_REG);
+            if(X_Input_REG > 0){
+                PORTD =1;
+                delay(125, 200);
+            }
+        }
+        if(PORTD > 0){
+            PORTBbits.RB1 = 1;
+            if (PORTBbits.RB6 ==1){
+                PORTD = 0;
+                X_Input_REG = 0;
+                Y_Input_REG = 0;
+                Operation_REG = 0;
+            }
+            PORTBbits.RB1 = 0;    
+        }
+        //check for op input on keypad
+        if(PORTD ==1){
+            Operation_REG = operator(Operation_REG);
+            what_button = Operation_REG;
+        }
+        if(what_button > 0){
+            PORTD = 3;
+            what_button = 0;
+            delay(125,200);
+        }
+        //check for Y input on keypad
+        if(PORTD == 3){
+            Y_Input_REG = input(Y_Input_REG);
+            if(Y_Input_REG > 0){
+                PORTD =2;
+                delay(200,200);
+            }
+        }
+        //reset the calc
+        if(PORTD > 0){
+            PORTBbits.RB1 = 1;
+            if(PORTBbits.RB6 == 1){
+                PORTD =0;
+                X_Input_REG = 0;
+                Y_Input_REG = 0;
+                Operation_REG =0;
+            }
+            PORTBbits.RB1 = 0;
+        }
+
+    }
+    if(PORTD == 2){
+        if(Operation_REG == 1){
+            Display_Result_REG = Addition_Op(X_Input_REG, Y_Input_REG);
+        }
+        else if (Operation_REG ==2){
+            Display_Result_REG = Subtraction_Op(X_Input_REG, Y_Input_REG);
+        }
+        else if (Operation_REG == 3){
+            Display_Result_REG = Multiplication_Op(X_Input_REG, Y_Input_REG);
+        }
+        else if (Operation_REG == 4){
+            Display_Result_REG == Division_Op(X_Input_REG, Y_Input_REG);
+        }
+        }
+    if(PORTD == 2){
+        PORTBbits.RB2 = 1;
+        if(PORTBbits.RB6 == 1){
+            PORTD = Display_Result_REG;
+            delay(200,200);
+        }
+        PORTBbits.RB2 = 0;
+    }
+    if(PORTD == 2){
+        PORTBbits.RB1 == 1;
+        if (PORTBbits.RB6 ==1){
+            PORTD =0;
+            X_Input_REG = 0;
+            Y_Input_REG = 0;
+            Operation_REG = 0;
+        }
+        PORTBbits.RB1 =0;
+        }
+}
+
+
+//MATH OPERATION FUNCTION
+int Addition_Op(int x1, int y1){
+    int add;
+    add = x1 + y1;
+    return add;
+}
+int Subtraction_Op(int x2, int y2){
+    int subtract;
+    subtract = x2-y2;
+    return subtract;
+}
+int Multiplication_Op(int x3, int y3){
+    int multiply;
+    multiply = x3 * y3;
+    return multiply;
+}
+int Division_Op(int x4, int y4){
+    int divide;
+    divide = x4 / y4;
+    return divide;
+}
+void delay(unsigned int itime, unsigned int jtime){
+    unsigned int i;
+    unsigned int j;
+    for(i = 0; i < itime; i++)
+        for(j = 0; i < jtime; j++);
+}
+int operator(int z1){
+    z1 = 0;
+    if(z1 == 0){
+        PORTBbits.RB5 =1;
+        if(PORTBbits.RB3 ==1)
+            z1 = 1;
+        if(PORTBbits.RB4 ==1)
+            z1 = 2;
+        if(PORTBbits.RB7 ==1)
+            z1 = 3;
+        if(PORTBbits.RB6 ==1)
+            z1 =4;
+        PORTBbits.RB5 = 0;
+    }
+    return z1;
+}
+int input(int z2){
+    z2 = 0;
+    if (z2 == 0){
+        PORTBbits.RB0 = 1;
+        if (PORTBbits.RB3 ==1)
+            z2 =1;
+        else if (PORTBbits.RB4 ==1)
+            z2 =4;
+        else if (PORTBbits.RB7 == 7)
+            z2 =7;
+        PORTBbits.RB0 =0;
+    }
+    if (z2 == 0){
+        PORTBbits.RB1 =1;
+        if (PORTBbits.RB3 ==1)
+            z2 =2;
+        else if (PORTBbits.RB4 ==1)
+            z2 =5;
+        else if (PORTBbits.RB7 ==1)
+            z2 = 8;
+        PORTBbits.RB1 = 0;
+    }
+    if (z2 == 0){
+        PORTBbits.RB2 =1;
+        if(PORTBbits.RB3 ==1)
+            z2 =3;
+        else if (PORTBbits.RB4 ==1)
+            z2 =6;
+        else if (PORTBbits.RB7 ==1)
+            z2 = 9;
+        PORTBbits.RB2 = 0;
+    }
+    return z2;
+}
+
+    
+        
+ 
+
+
+    
